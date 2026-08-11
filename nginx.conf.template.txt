@@ -1,0 +1,21 @@
+server {
+    listen ${PORT};
+    server_name _;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Serve the app — fall back to index.html for any path
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Basic gzip for faster loads
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json text/xml application/xml;
+
+    # Don't cache index.html so updates show up immediately
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+}
