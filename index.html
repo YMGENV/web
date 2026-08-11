@@ -137,8 +137,12 @@
     color: var(--text);
     text-align:left;
     transition: border-color .15s, background .15s, transform .1s;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
   }
-  .role-btn:hover{ border-color: var(--ink-dim); transform: translateY(-1px); }
+  .role-btn:hover:not(:disabled){ border-color: var(--ink-dim); transform: translateY(-1px); }
+  .role-btn:active:not(:disabled){ background: var(--surface); transform: translateY(0); }
   .role-btn:disabled{ opacity:0.4; cursor:not-allowed; transform:none; }
   .role-icon{
     width:34px; height:34px; border-radius:9px; flex-shrink:0;
@@ -535,8 +539,19 @@
 
   function getCode(){ return digits.map(d=>d.value).join(''); }
 
-  joinSenderBtn.addEventListener('click', ()=> enterRoom('sender'));
-  joinViewerBtn.addEventListener('click', ()=> enterRoom('viewer'));
+  // Handle both click and touch events for mobile
+  const attachButtonHandler = (btn, role) => {
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if(!btn.disabled) enterRoom(role);
+    };
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchend', handler);
+  };
+  
+  attachButtonHandler(joinSenderBtn, 'sender');
+  attachButtonHandler(joinViewerBtn, 'viewer');
 
   // ---------- Room join ----------
   function enterRoom(chosenRole){
@@ -599,6 +614,7 @@
     digits[0].focus();
   }
   leaveBtn.addEventListener('click', leaveRoom);
+  leaveBtn.addEventListener('touchend', (e) => { e.preventDefault(); leaveRoom(); });
 
   // ---------- Text broadcast (sender only) ----------
   let textDebounce = null;
@@ -613,7 +629,7 @@
   });
 
   // ---------- Save as .txt ----------
-  saveBtn.addEventListener('click', ()=>{
+  const handleSave = () => {
     const blob = new Blob([textArea.value], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -624,7 +640,9 @@
     a.remove();
     URL.revokeObjectURL(url);
     toast('Saved as .txt');
-  });
+  };
+  saveBtn.addEventListener('click', handleSave);
+  saveBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleSave(); });
 
   // ---------- Canvas / handwriting ----------
   let strokes = [];       // completed strokes for this pending batch: [[x...],[y...],[t...]]
@@ -708,12 +726,14 @@
     inkTimer = setTimeout(convertInk, 1000);
   }
 
-  clearCanvasBtn.addEventListener('click', ()=>{
+  const handleClearCanvas = () => {
     clearTimeout(inkTimer);
     strokes = [];
     ctx.clearRect(0,0,canvas.width,canvas.height);
     convertingIndicator.classList.remove('show');
-  });
+  };
+  clearCanvasBtn.addEventListener('click', handleClearCanvas);
+  clearCanvasBtn.addEventListener('touchend', (e) => { e.preventDefault(); handleClearCanvas(); });
 
   async function convertInk(){
     if(strokes.length === 0) return;
